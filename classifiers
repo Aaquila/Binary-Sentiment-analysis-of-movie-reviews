@@ -1,0 +1,57 @@
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import roc_curve, auc
+from sklearn import preprocessing
+import numpy as np
+
+#Naive Bayes///////////////////////////////
+clf1 = GaussianNB()
+clf1.fit(features_train, labels_train)
+
+print("[{}] Accuracy: train = {}, test = {}".format(
+        clf1.__class__.__name__,
+        clf1.score(features_train, labels_train),
+        clf1.score(features_test, labels_test)))
+        
+        
+#Gradient Boosting decision tree/////////////////
+le = preprocessing.LabelEncoder()
+le.fit(["pos", "neg"])
+n_estimators = [1,2,4,8,16,32,64,128]
+def classify_gboost(X_train, X_test, y_train, y_test):       
+    train_results = []
+    test_results = []
+    for estimator in n_estimators:
+        model = GradientBoostingClassifier(n_estimators=estimator,learning_rate=1.0, max_depth=1, random_state=0)
+        model.fit(X_train, y_train)
+        train_pred = model.predict(X_train)
+        print(n_estimators)
+        false_positive_rate, true_positive_rate, thresholds = roc_curve(y_train, train_pred,pos_label=1)
+        roc_auc = auc(false_positive_rate, true_positive_rate)
+        train_results.append(roc_auc)
+        y_pred = model.predict(X_test)
+        false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test, y_pred)
+        roc_auc = auc(false_positive_rate, true_positive_rate)
+        test_results.append(roc_auc)
+    from matplotlib.legend_handler import HandlerLine2D
+    line1, = plt.plot(n_estimators, train_results, 'b', label='Train AUC')
+    line2, = plt.plot(n_estimators, test_results, 'r', label='Test AUC')
+    plt.legend(handler_map={line1: HandlerLine2D(numpoints=2)})
+    plt.ylabel('AUC score')
+    plt.xlabel('n_estimators')
+    plt.show()
+    best_estimator=n_estimators[np.argmax(test_results)]
+    clf = GradientBoostingClassifier(n_estimators=best_estimator,learning_rate=1.0, max_depth=1, random_state=0)
+    clf.fit(X_train, y_train)
+    # TODO: Print final training & test accuracy
+    print("[{}] Accuracy: train = {}, test = {}".format(
+            clf.__class__.__name__,
+            clf.score(X_train, y_train),
+            clf.score(X_test, y_test)))
+    # Return best classifier model
+    print(best_estimator)
+    return clf
+
+clf2 = classify_gboost(features_train, features_test, le.transform(labels_train), le.transform(labels_test))
+
+#RNN////////////////////////////////////////////////////////
